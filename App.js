@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { DeviceEventEmitter, ScrollView, Text, View, Button, TextInput, Alert } from 'react-native';
+import { DeviceEventEmitter, ScrollView, Text, View, TextInput } from 'react-native';
 import { RNSerialport, definitions, actions } from 'react-native-usb-serialport';
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import Share from 'react-native-share';
-
+import { extractAndShareReportPDF, extractAndShareFullPDF } from './PDF';
+import CustomButton from './CustomButton'; 
+import { styles } from './styles';
 const App = () => {
     const [logText, setLogText] = useState('');
     const [inputText, setInputText] = useState('');
@@ -68,7 +68,7 @@ const App = () => {
             const newlineIndex = charString.indexOf('\n');
             if (newlineIndex !== -1) {
                 tempLog += charString.substring(0, newlineIndex + 1);
-                const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').slice(2);
+                const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').slice(2, 19);
                 const logEntry = `${timestamp}: ${tempLog}`;
                 appendLog(logEntry);
                 tempLog = '';
@@ -126,67 +126,60 @@ const App = () => {
                 console.error(`Errore durante l'invio della stringa "${data}":`, error);
             }
         } else {
-            console.error('Nessun dispositivo connesso. Impossibile inviare i dati.');
+            console.error(`Nessun dispositivo connesso. Impossibile inviare il dato "${data}".`);
         }
     };
 
-    const handleExtractAndSharePDF = () => {
-        const logLines = logText.split('\n');
-        let reportText = '';
-        let startReportFound = false;
-        for (let i = 0; i < logLines.length; i++) {
-            if (logLines[i].includes('<START_REPORT>')) {
-                startReportFound = true;
-                reportText = '';
-            } else if (logLines[i].includes('<END_REPORT>')) {
-                if (!startReportFound) {
-                    Alert.alert('Error', 'Start tag <START_REPORT> not found before end tag <END_REPORT>');
-                    return;
-                }
-                startReportFound = false;
-            } else if (startReportFound) {
-                reportText += logLines[i] + '\n';
-            }
-        }
-        if (reportText.trim() === '') {
-            Alert.alert('Error', 'No data found between start and end tags');
-            return;
-        }
+    const handleExtractAndShareReportPDF = async () => {
+        await extractAndShareReportPDF(logText);
+    };
 
-        const options = {
-            html: `<html><body><pre>${reportText}</pre></body></html>`,
-            fileName: 'report',
-            directory: 'Documents',
-        };
-        RNHTMLtoPDF.convert(options).then(pdf => {
-            Share.open({
-                url: `file://${pdf.filePath}`,
-                title: 'Share PDF',
-            }).catch(error => console.error('Error sharing PDF:', error));
-        }).catch(error => console.error('Error converting HTML to PDF:', error));
+    const handleExtractAndShareFullPDF = async () => {
+        await extractAndShareFullPDF(logText);
     };
 
     return (
-        <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(number => (
-                    <Button key={number} title={`${number}`} onPress={() => handleSendData(number.toString())} />
-                ))}
-                <Button title="Clear Log" onPress={handleClearLog} />
+        <View style={styles.container}>
+            <View style={styles.buttonContainer}>
+            <View style={styles.buttonRow}>
+                    {[1, 4,7].map(number => (
+                        <CustomButton key={number} title={`${number}`} onPress={() => handleSendData(number.toString())} style={styles.SerialButton}/>
+                    ))}
+                </View>
+                <View style={styles.buttonRow}>
+                    {[2, 5, 8].map(number => (
+                        <CustomButton key={number} title={`${number}`} onPress={() => handleSendData(number.toString())} style={styles.SerialButton}/>
+                    ))}
+                </View>
+                <View style={styles.buttonRow}>
+                    {[3, 6, 9].map(number => (
+                        <CustomButton key={number} title={`${number}`} onPress={() => handleSendData(number.toString())} style={styles.SerialButton} />
+                    ))}
+                </View>
+                <View style={styles.clearButtonRow}>
+                    <CustomButton title="Clear Log" onPress={handleClearLog} style={styles.clearButton} />
+                </View>
             </View>
-            <ScrollView ref={scrollViewRef} style={{ flex: 1, padding: 10 }}>
+            <ScrollView ref={scrollViewRef} style={styles.scrollView}>
                 <Text>{logText}</Text>
             </ScrollView>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 10 }}>
+            <View style={styles.inputContainer}>
                 <TextInput
-                    style={{ flex: 1, height: 40, borderColor: 'gray', borderWidth: 1, marginRight: 10 }}
+                    style={styles.input}
                     onChangeText={setInputText}
                     value={inputText}
                     placeholder="Input Text"
                 />
-                <Button title="Send" onPress={handleSendData} />
+                <CustomButton title="Send" onPress={handleSendData} />
             </View>
-            <Button title="Extract and Share PDF" onPress={handleExtractAndSharePDF} />
+            <View style={styles.shareButtonRowContainer}>
+                <View style={styles.shareButtonRow}>
+                    <CustomButton title="Extract and Share Report PDF" onPress={handleExtractAndShareReportPDF} style={styles.shareButton} />
+                </View>
+                <View style={styles.shareButtonRow}>
+                    <CustomButton title="Extract and Share Full PDF" onPress={handleExtractAndShareFullPDF} style={styles.shareButton} />
+                </View>
+            </View>
         </View>
     );
 };
