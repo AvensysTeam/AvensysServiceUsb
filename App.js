@@ -9,6 +9,8 @@ const App = () => {
     const [inputText, setInputText] = useState('');
     const scrollViewRef = useRef();
     const [connectedDevice, setConnectedDevice] = useState(null);
+    const isTimestampEnabledRef = useRef(false);
+   
     let tempLog = '';
 
     useEffect(() => {
@@ -68,8 +70,8 @@ const App = () => {
             const newlineIndex = charString.indexOf('\n');
             if (newlineIndex !== -1) {
                 tempLog += charString.substring(0, newlineIndex + 1);
-                const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').slice(2, 19);
-                const logEntry = `${timestamp}: ${tempLog}`;
+                const timestamp = isTimestampEnabledRef.current ? new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').slice(2, 19) : '';
+                const logEntry = isTimestampEnabledRef.current ? `${timestamp}: ${tempLog}` : `${tempLog}`;
                 appendLog(logEntry);
                 tempLog = '';
                 const remainingChars = charString.substring(newlineIndex + 1);
@@ -116,6 +118,10 @@ const App = () => {
         setLogText('');
     };
 
+    const toggleTimestamp = () => {
+        isTimestampEnabledRef.current = !isTimestampEnabledRef.current;
+    };
+
     const handleSendData = (data = inputText) => {
         if (connectedDevice) {
             try {
@@ -137,6 +143,8 @@ const App = () => {
     const handleExtractAndShareFullPDF = async () => {
         await extractAndShareFullPDF(logText);
     };
+
+    const buttonText = isTimestampEnabledRef.current ? "Disattiva Timestamp" : "Attiva Timestamp";
 
     return (
         <View style={styles.container}>
@@ -166,11 +174,11 @@ const App = () => {
             <View style={styles.inputContainer}>
                 <TextInput
                     style={styles.input}
-                    onChangeText={setInputText}
+                    onChangeText={text => setInputText(text)} 
                     value={inputText}
                     placeholder="Input Text"
                 />
-                <CustomButton title="Send" onPress={handleSendData} />
+                <CustomButton title="Send" onPress={() => handleSendData(inputText)} />
             </View>
             <View style={styles.shareButtonRowContainer}>
                 <View style={styles.shareButtonRow}>
@@ -179,6 +187,9 @@ const App = () => {
                 <View style={styles.shareButtonRow}>
                     <CustomButton title="Extract and Share Full PDF" onPress={handleExtractAndShareFullPDF} style={styles.shareButton} />
                 </View>
+                <View style={styles.shareButtonRow}>
+                <CustomButton title={buttonText} onPress={toggleTimestamp} style={styles.shareButton} />
+            </View>
             </View>
         </View>
     );

@@ -60,7 +60,6 @@ export const styles = StyleSheet.create({
   shareButtonRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 10,
   },
   shareButton: {
     ...baseButtonStyle,
